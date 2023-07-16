@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:band_names/models/band.dart';
+import 'package:pie_chart/pie_chart.dart';
 import 'package:provider/provider.dart';
 
 import '../services/socket_service.dart';
@@ -50,9 +51,14 @@ class _HomePageState extends State<HomePage> {
           )
         ],
       ),
-      body: ListView.builder(
-        itemBuilder: (context, index) => _bandTile(bands[index]),
-        itemCount: bands.length,
+      body: Column(
+        children: [
+          _showGraph(),
+          Expanded(child:  ListView.builder(
+            itemBuilder: (context, index) => _bandTile(bands[index]),
+            itemCount: bands.length,
+          ))
+        ],
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: addNewBand,
@@ -131,5 +137,44 @@ class _HomePageState extends State<HomePage> {
       socketService.emit('new-band',name);
     }
     Navigator.pop(context);
+  }
+
+  Widget _showGraph() {
+    Map<String, double> dataMap = {};
+    bands.forEach((element) {
+      dataMap.putIfAbsent(element.name, () => element.votes.toDouble());
+    });
+    return Container(
+      width: double.infinity,
+        height: 300,
+        child: PieChart(
+          dataMap: dataMap,
+          animationDuration: Duration(milliseconds: 800),
+          chartLegendSpacing: 32,
+          chartRadius: MediaQuery.of(context).size.width / 3.2,
+          initialAngleInDegree: 0,
+          chartType: ChartType.ring,
+          ringStrokeWidth: 32,
+          centerText: "BANDAS",
+          legendOptions:const LegendOptions(
+            showLegendsInRow: false,
+            legendPosition: LegendPosition.right,
+            showLegends: true,
+            legendShape: BoxShape.circle,
+            legendTextStyle: TextStyle(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          chartValuesOptions:const ChartValuesOptions(
+            showChartValueBackground: false,
+            showChartValues: true,
+            showChartValuesInPercentage: true,
+            showChartValuesOutside: true,
+            decimalPlaces: 0,
+          ),
+          // gradientList: ---To add gradient colors---
+          // emptyColorGradient: ---Empty Color gradient---
+        )
+    );
   }
 }
