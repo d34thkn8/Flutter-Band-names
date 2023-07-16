@@ -2,6 +2,9 @@ import 'dart:io';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:band_names/models/band.dart';
+import 'package:provider/provider.dart';
+
+import '../services/socket_service.dart';
 class HomePage extends StatefulWidget {
   @override
   State<HomePage> createState() => _HomePageState();
@@ -15,7 +18,24 @@ class _HomePageState extends State<HomePage> {
     Band(id: '4', name: 'Bon Jovi', votes: 5),
   ];
   @override
+  void initState(){
+    final socketService = Provider.of<SocketService>(context, listen: false);
+    socketService.socket.on('active-bands',_hadleActiveBands);
+    super.initState();
+  }
+  _hadleActiveBands(dynamic data){
+    bands=[];
+    bands=(data as List).map((band)=> Band.fromMap(band)).toList();
+    setState(() {
+
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
+
+    final socketService = Provider.of<SocketService>(context);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text(
@@ -23,6 +43,12 @@ class _HomePageState extends State<HomePage> {
           style: TextStyle(color: Colors.black87),
         ),
         elevation: 1,
+        actions: [
+          Container(
+            margin:const EdgeInsets.only(right: 10),
+            child: Icon(socketService.serverStatus==ServerStatus.online? Icons.signal_cellular_4_bar:Icons.signal_cellular_connected_no_internet_0_bar, color: socketService.serverStatus==ServerStatus.online? Colors.lightGreenAccent: Colors.deepOrangeAccent, ),
+          )
+        ],
       ),
       body: ListView.builder(
         itemBuilder: (context, index) => _bandTile(bands[index]),
@@ -37,6 +63,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _bandTile(Band band) {
+    final socketService = Provider.of<SocketService>(context, listen: false);
     return Dismissible(
       key: Key(band.id),
       direction: DismissDirection.startToEnd,
@@ -54,14 +81,15 @@ class _HomePageState extends State<HomePage> {
         title: Text(band.name),
         trailing: Text('${band.votes}', style: TextStyle(fontSize: 20),),
         onTap: (){
-              print(band.name);
+              socketService.emit('vote-band',band.id);
         },
           ),
       onDismissed: (direction){
-
+        socketService.emit('delete-band',band.id);
       },
     );
   }
+
   addNewBand(){
     final textController = TextEditingController();
     /*if(Platform.isAndroid){
@@ -98,10 +126,9 @@ class _HomePageState extends State<HomePage> {
 
   }
   addBandToList(String name){
+    final socketService = Provider.of<SocketService>(context, listen: false);
     if(name.length>1){
-      this.bands.add(Band(id: DateTime.now().toString(), name: name, votes: 0));
-      setState(() {
-      });
+      socketService.emit('new-band',name);
     }
     Navigator.pop(context);
   }
